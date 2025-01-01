@@ -1,25 +1,38 @@
-const express = require('express')
+const express = require("express");
 const router = express.Router();
-const { body,validationResult } = require('express-validator');
+const { body, validationResult } = require("express-validator");
+const userModel = require("../models/user.model");
 
-router.get('/register',(req,res)=>{
-    res.render('register')
-})
+const bcrypt = require("bcrypt");
 
-router.post('/register'
-    ,
-    body('email').trim().isEmail().isLength({min:13}),
-    body("username").trim().isLength({min:5}),
-    body("password").trim().isLength({min:3})
+router.get("/register", (req, res) => {
+  res.render("register");
+});
+
+router.post(
+  "/register",
+  body("email").trim().isEmail().isLength({ min: 13 }),
+  body("username").trim().isLength({ min: 3 }),
+  body("password").trim().isLength({ min: 3 }),
+
+  async (req, res) => {
+    const err = validationResult(req);
     
-    ,(req,res)=>{
-    // [username,email,password]=req.body;
-        const err = validationResult(req);
-    console.log(req.body)
-    if(!err.isEmpty()){
-        return res.status(400).json({err:err.array(),message:'Invalid Data'})
+    if (!err.isEmpty()) {
+      return res
+        .status(400)
+        .json({ err: err.array(), message: "Invalid Data" });
     }
-    res.send(err)
-})
+
+    const { username, email, password } = req.body;
+    const hashPassword = await bcrypt.hash(password, 10);
+    const newUser = await userModel.create({
+      username,
+      email,
+      password:hashPassword,
+    });
+    res.json(newUser);
+  }
+);
 
 module.exports = router;
